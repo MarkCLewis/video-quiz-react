@@ -1,0 +1,19 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET         /                             controllers.Application.index
+
+# API Calls
+GET         /tryLogin                     controllers.Application.tryLogin(username, password)
+GET         /getCourses                   controllers.Application.getCourses(userid: Int)
+GET         /getQuizzes                   controllers.Application.getQuizzes(courseid: Int)
+GET         /getQuizData                  controllers.Application.getQuizData(quizid: Int, userid: Int)
+
+GET         /submitMC                     controllers.Application.submitMC(quizid: Int, userid: Int, mcid: Int, selection: Int)
+GET         /submitCode                   controllers.Application.submitCode(quizid: Int, userid: Int, codeid: Int, qtype: Int, code)
+
+# Prefix must match `play.assets.urlPrefix`
+GET        /assets/*file                 controllers.Assets.at(file)
+GET        /versionedAssets/*file        controllers.Assets.versioned(path="/public", file: Asset)

@@ -1,0 +1,5 @@
+grant {
+	permission java.lang.RuntimePermission "modifyThread";
+	permission java.lang.RuntimePermission "exitVM.1";
+	permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+};

@@ -1,0 +1,17 @@
+.quiz-table, td, thead {
+  border : 1px solid black;
+}
+
+.quiz-table {
+  width: 100%;
+}
+
+.code-area {
+  width: 90%;
+  height: 150px;
+}
+
+.problem-header {
+  font-size: larger;
+  font-weight: bold;
+}
