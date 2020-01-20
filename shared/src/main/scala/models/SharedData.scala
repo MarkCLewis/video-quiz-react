@@ -7,9 +7,11 @@ object SharedData {
   val Student = 1
   val Instructor = 2
 
-  case class UserData(username: String, id: Int, sessionUID: Int)
+  case class UserData(username: String, id: Int, sessionUID: Int, instructor: Boolean)
   case class CourseData(name: String, id: Int, role: Int)
   case class QuizTimeData(id: Int, name: String, description: String, time: String)
+  case class SubmissionResult(correct: Boolean, message: String)
+  case class LoginInfo(username: String, password: String)
 
   implicit val userDataReads = Json.reads[UserData]
   implicit val userDataWrites = Json.writes[UserData]
@@ -90,4 +92,12 @@ object SharedData {
   implicit val courseDataReads = Json.reads[CourseData]
   implicit val courseDataWrites = Json.writes[CourseData]
   implicit val courseDataFormat = Json.format[CourseData]
+
+  implicit val srReads = Json.reads[SubmissionResult]
+  implicit val srWrites = Json.writes[SubmissionResult]
+  implicit val srFormat = Json.format[SubmissionResult]
+
+  implicit val liReads = Json.reads[LoginInfo]
+  implicit val liWrites = Json.writes[LoginInfo]
+  implicit val liFormat = Json.format[LoginInfo]
 }

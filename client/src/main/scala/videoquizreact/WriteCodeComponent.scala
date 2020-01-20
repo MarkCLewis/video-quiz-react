@@ -6,7 +6,8 @@ import slinky.core.annotations.react
 import slinky.web.html._
 import shared.SharedData._
 import models._
-import org.scalajs.dom.experimental.Fetch
+import org.scalajs.dom
+import org.scalajs.dom.experimental._
 import play.api.libs.json._
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js.URIUtils
@@ -14,11 +15,11 @@ import slinky.core.TagMod
 
 @react class WriteCodeComponent extends Component {
   case class Props(question: CodeQuestionData, closed: Boolean, userData: UserData, quizTimeData: QuizTimeData, redoQuizOnSubmit: () => Unit)
-  case class State(code: String, correct: Boolean)
+  case class State(code: String, correct: Boolean, message: String)
 
   implicit val ec = ExecutionContext.global
 
-  def initialState = State(props.question.lastCode.getOrElse(""), props.question.correct)
+  def initialState = State(props.question.lastCode.getOrElse(""), props.question.correct, "")
 
   def render(): ReactElement = div (
     br (),
@@ -38,31 +39,37 @@ import slinky.core.TagMod
     textarea (onChange := { e => setState(state.copy(code = e.target.value))}, className := "code-area", disabled := props.closed || props.question.correct, value := state.code),
     br(),
     if (props.closed || props.question.correct) "" else button ( "Submit", onClick := (event => submitCode())),
-    if (state.correct) "Correct" else "Incorrect"
+    (if (state.correct) "Correct" else "Incorrect") + state.message
   )
 
   def submitCode(): Unit = {
     if (state.code.trim.nonEmpty) {
-      Fetch.fetch(s"/submitCode?quizid=${props.quizTimeData.id}&userid=${props.userData.id}&codeid=${props.question.questionid}&qtype=${props.question.questionType}&code=${URIUtils.encodeURIComponent(state.code)}").toFuture
-        .flatMap { res =>
+      val headers = new Headers()
+      headers.set("Content-Type", "application/json")
+      headers.set("Csrf-Token", dom.document.getElementsByTagName("body").apply(0).getAttribute("data-token"))
+      Fetch.fetch(
+        s"/submitCode",
+        RequestInit(method = HttpMethod.POST, mode = RequestMode.cors, headers = headers, 
+            body = Json.toJson((props.quizTimeData.id, props.userData.id, props.question.questionid, props.question.questionType, state.code)).toString())
+      ).toFuture.flatMap { res =>
           res.text().toFuture
+      }
+      .map { res =>
+        println("Code text response = " + res)
+        Json.fromJson[SubmissionResult](Json.parse(res)) match {
+          case JsSuccess(sr, path) =>
+            println("after parse Boolean = " + sr)
+            if (sr.correct) {
+              setState(state.copy(correct = true, message = ""))
+              props.redoQuizOnSubmit()
+            } else {
+              setState(state.copy(correct = false, message = " : " + sr.message))
+            }
+          case e @ JsError(_) =>
+            println("Question Bundle error: " + e)
+            // setState(_.copy(message = "Error with JSON response from server."))
         }
-        .map { res =>
-          println("Code text response = " + res)
-          Json.fromJson[Boolean](Json.parse(res)) match {
-            case JsSuccess(correct, path) =>
-              println("after parse Boolean = " + correct)
-              if (correct) {
-                setState(state.copy(correct = true))
-                props.redoQuizOnSubmit()
-              } else {
-                setState(state.copy(correct = false))
-              }
-            case e @ JsError(_) =>
-              println("Question Bundle error: " + e)
-              // setState(_.copy(message = "Error with JSON response from server."))
-          }
-        }
+      }
     }
   }
 }

@@ -1,12 +1,13 @@
 package videoquizreact
 
+import org.scalajs.dom
 import slinky.core.Component
 import slinky.core.facade.ReactElement
 import slinky.core.annotations.react
 import slinky.web.html._
 import shared.SharedData._
 import models._
-import org.scalajs.dom.experimental.Fetch
+import org.scalajs.dom.experimental._
 import play.api.libs.json._
 import scala.concurrent.ExecutionContext
 import slinky.core.TagMod
@@ -21,6 +22,7 @@ import slinky.core.TagMod
 
   def render(): ReactElement = {
     val qid = props.question.mcid
+    println(props.question)
     div (
       br (),
       div ( "Multiple Choice", className := "problem-header" ),
@@ -41,21 +43,26 @@ import slinky.core.TagMod
         )
       },
       if (props.closed || props.question.answer.nonEmpty || state.answered) 
-        (if (props.question.answer.getOrElse(-100) + 1 == props.question.spec.correct) "Correct" else "Incorrect") 
+        (if (props.question.answer.getOrElse(-100) == props.question.spec.correct) "Correct" else "Incorrect") 
         else button ( "Submit", onClick := (event => submitAnswer()))
     )
   }
 
   def submitAnswer(): Unit = {
+    val headers = new Headers()
+    headers.set("Content-Type", "application/json")
+    headers.set("Csrf-Token", dom.document.getElementsByTagName("body").apply(0).getAttribute("data-token"))
     state.selected.foreach { sel =>
-      Fetch.fetch(s"/submitMC?quizid=${props.quizTimeData.id}&userid=${props.userData.id}&mcid=${props.question.mcid}&selection=${sel + 1}").toFuture
-        .flatMap { res =>
+      Fetch.fetch(
+        s"/submitMC",
+        RequestInit(method = HttpMethod.POST, mode = RequestMode.cors, headers = headers, body = Json.toJson((props.quizTimeData.id, props.userData.id, props.question.mcid, sel + 1)).toString())
+      ).toFuture.flatMap { res =>
           res.text().toFuture
         }
         .map { res =>
-          Json.fromJson[Boolean](Json.parse(res)) match {
-            case JsSuccess(correct, path) =>
-              if (correct) {
+          Json.fromJson[SubmissionResult](Json.parse(res)) match {
+            case JsSuccess(sr, path) =>
+              if (sr.correct) {
                 props.redoQuizOnSubmit()
               } else {
                 setState(state.copy(answered = true))

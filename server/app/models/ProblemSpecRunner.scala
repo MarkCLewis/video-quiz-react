@@ -9,21 +9,23 @@ import slick.jdbc.MySQLProfile.api._
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 import Tables._
+import shared.SharedData.SubmissionResult
+import ProblemSpec._
 
 object ProblemSpecRunner {
-  def checkResponse(spec: ProblemSpec, response: String): Boolean = spec match {
+  def checkResponse(spec: ProblemSpec, response: String): SubmissionResult = spec match {
     case MultipleChoice(id, prompt, options, correct) => 
       try {
         println(response.toInt, correct)
-        response != null && response.toInt == correct
+        SubmissionResult(response != null && response.toInt == correct, "Answered")
       } catch {
-        case e: NumberFormatException => false
+        case e: NumberFormatException => SubmissionResult(false, "Communication error, NPE.")
       }
     case WriteExpression(id, prompt, correctCode, varSpecs, generalSetup, numRuns) => 
       val code = s"""
         ${varSpecs.map(_.codeGenerator).mkString("\n")}
         $generalSetup
-        if({$response} != {$correctCode}) sys.exit(1)
+        if({$response} != {$correctCode}) sys.exit(${FailedTestExitCode})
         """
       ProblemSpecRunner.runCode(code, "", numRuns)
     case WriteFunction(id, prompt, correctCode, functionName, varSpecs, numRuns) => 
@@ -33,7 +35,7 @@ object ProblemSpecRunner {
         ${varSpecs.map(_.codeGenerator).mkString("\n")}
         val theirFunc = $functionName(${varSpecs.map(_.name).mkString(",")})
         val correctFunc = ${functionName}Correct(${varSpecs.map(_.name).mkString(",")})
-        if(theirFunc != correctFunc) sys.exit(1)
+        if(theirFunc != correctFunc) sys.exit(${FailedTestExitCode})
         """
       ProblemSpecRunner.runCode(code, "", numRuns)
     case WriteLambda(id, prompt, correctCode, returnType, varSpecs, numRuns) => 
@@ -42,7 +44,7 @@ object ProblemSpecRunner {
       val code = s"""
         def tester(f1:$funcType, f2:$funcType):Unit = {
           ${varSpecs.map(_.codeGenerator).mkString("\n")}
-          if(f1($args) != f2($args)) sys.exit(1)
+          if(f1($args) != f2($args)) sys.exit(${FailedTestExitCode})
         }
         tester($response,$correctCode)
         """
@@ -123,7 +125,7 @@ import ExecutionContext.Implicits.global
     
 Future {
    Thread.sleep(10000)
-   sys.exit(1)
+   sys.exit(${TimeoutExitCode})
 }
 for(i <- 1 to $numRuns) {
   $testCode
@@ -131,7 +133,7 @@ for(i <- 1 to $numRuns) {
 """
   }
 
-  def runCode(code: String, input: String, numRuns: Int): Boolean = {
+  def runCode(code: String, input: String, numRuns: Int): SubmissionResult = {
     val tmpFile = File.createTempFile("test", ".scala")
     tmpFile.deleteOnExit()
     val pw = new PrintWriter(tmpFile)
@@ -143,7 +145,12 @@ for(i <- 1 to $numRuns) {
     val ret = process.exitValue == 0
     println("Done running - " + ret)
     println("Exit value is " + process.exitValue)
-    ret
+    SubmissionResult(ret, process.exitValue() match {
+      case CorrectSubmission => "Correct"
+      case CompileErrorExitCode => "Compile/Runtime Error"
+      case TimeoutExitCode => "Timeout"
+      case FailedTestExitCode => "Test Case Failed"
+    })
   }
 }
 

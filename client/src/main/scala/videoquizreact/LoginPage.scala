@@ -5,8 +5,9 @@ import slinky.core.annotations.react
 import slinky.core.Component
 import slinky.core.facade.ReactElement
 import slinky.web.html._
-import org.scalajs.dom.experimental.Fetch
+import org.scalajs.dom.experimental._
 
+import scala.scalajs.js
 import scala.scalajs.js.Thenable.Implicits._
 import scala.scalajs.js.JSON
 import shared.SharedData._
@@ -44,7 +45,13 @@ import play.api.libs.json.JsError
     if (state.username.isEmpty) setState(state.copy(message = "Username is required."))
     else if (state.password.isEmpty) setState(state.copy(message = "Password is required."))
     else {
-      Fetch.fetch(s"/tryLogin?username=${state.username.get}&password=${state.password.get}").flatMap(_.text()).map { res =>
+      val headers = new Headers()
+      headers.set("Content-Type", "application/json")
+      headers.set("Csrf-Token", dom.document.getElementsByTagName("body").apply(0).getAttribute("data-token"))
+      Fetch.fetch(
+        s"/tryLogin",
+        RequestInit(method = HttpMethod.POST, mode = RequestMode.cors, headers = headers, body = Json.toJson(LoginInfo(state.username.get, state.password.get)).toString())
+      ).flatMap(_.text()).map { res =>
         println(state.username, state.password)
         Json.fromJson[UserData](Json.parse(res)) match {
           case JsSuccess(ud, path) =>

@@ -1,12 +1,13 @@
 package videoquizreact
 
+import org.scalajs.dom
 import slinky.core.Component
 import slinky.core.facade.ReactElement
 import slinky.core.annotations.react
 import slinky.web.html._
 import shared.SharedData._
 import scala.concurrent.ExecutionContext
-import org.scalajs.dom.experimental.Fetch
+import org.scalajs.dom.experimental._
 import play.api.libs.json._
 import models._
 
@@ -24,8 +25,7 @@ import models._
         props.courseData.name,
         span ("(click to collapse)", onClick := (event => setState(_.copy(expanded = false)))),
         br(),
-        QuizList(props.userData, state.quizTimeData),
-        "Semester total = ? of ?"
+        QuizList(props.userData, state.quizTimeData)
       )
     } else {
       div (props.courseData.name, span ("(click to expand)", onClick := (event => setState(_.copy(expanded = true)))))
@@ -35,9 +35,13 @@ import models._
   implicit val ec = ExecutionContext.global
 
   def loadQuizzes(): Unit = {
-    println("Loading quizzes")
-    Fetch.fetch(s"/getQuizzes?courseid=${props.courseData.id}").toFuture
-      .flatMap { res =>
+    val headers = new Headers()
+    headers.set("Content-Type", "application/json")
+    headers.set("Csrf-Token", dom.document.getElementsByTagName("body").apply(0).getAttribute("data-token"))
+    Fetch.fetch(
+      s"/getQuizzes",
+      RequestInit(method = HttpMethod.POST, mode = RequestMode.cors, headers = headers, body = Json.toJson(props.courseData.id).toString())
+    ).toFuture.flatMap { res =>
         res.text().toFuture
       }
       .map { res =>

@@ -5,6 +5,11 @@ object ProblemSpec {
   val FunctionType = 1
   val LambdaType = 2
   val ExpressionType = 3
+
+  val CorrectSubmission = 0
+  val CompileErrorExitCode = 1
+  val TimeoutExitCode = 2
+  val FailedTestExitCode = 3
 }
 
 sealed trait ProblemSpec {

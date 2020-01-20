@@ -1,12 +1,13 @@
 package videoquizreact
 
+import org.scalajs.dom
 import slinky.core.Component
 import slinky.core.facade.ReactElement
 import slinky.core.annotations.react
 import slinky.web.html._
 import shared.SharedData._
 import scala.scalajs.js.Date
-import org.scalajs.dom.experimental.Fetch
+import org.scalajs.dom.experimental._
 import play.api.libs.json._
 import scala.concurrent.ExecutionContext
 import slinky.core.TagMod
@@ -43,9 +44,9 @@ import models._
         }
       ), 
       state.quizData.map(qd => 
-        td ((qd.multipleChoice.count(d => d.answer.getOrElse(-100) + 1 == d.spec.correct) + qd.codeQuestions.count(_.correct)) + "/" + 
+        td ((qd.multipleChoice.count(d => d.answer.getOrElse(-100) == d.spec.correct) + qd.codeQuestions.count(_.correct)) + "/" + 
             (qd.codeQuestions.length + qd.multipleChoice.length)): TagMod[tr.tag.type]
-      ).getOrElse(td ( "?/?" ): TagMod[tr.tag.type]), 
+      ).getOrElse(td ( "?/?"  ): TagMod[tr.tag.type]), 
       td (
         if (closed) "Closed" else props.quizTimeData.time
       )
@@ -53,8 +54,13 @@ import models._
   }
 
   def loadQuestions(): Unit = {
-    Fetch.fetch(s"/getQuizData?quizid=${props.quizTimeData.id}&userid=${props.userData.id}").toFuture
-      .flatMap { res =>
+    val headers = new Headers()
+    headers.set("Content-Type", "application/json")
+    headers.set("Csrf-Token", dom.document.getElementsByTagName("body").apply(0).getAttribute("data-token"))
+    Fetch.fetch(
+      s"/getQuizData",
+      RequestInit(method = HttpMethod.POST, mode = RequestMode.cors, headers = headers, body = Json.toJson(props.quizTimeData.id -> props.userData.id).toString())
+    ).toFuture.flatMap { res =>
         res.text().toFuture
       }
       .map { res =>

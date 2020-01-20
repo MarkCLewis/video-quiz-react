@@ -1,15 +1,16 @@
 package videoquizreact
 
+import org.scalajs.dom
 import slinky.core.annotations.react
 import slinky.core.Component
 import slinky.core.facade.ReactElement
 import slinky.web.html._
 import shared.SharedData._
-import org.scalajs.dom.experimental.Fetch
 import scala.scalajs.js.Thenable.Implicits._
 import play.api.libs.json._
 import scala.scalajs.js.JSON
 import scala.concurrent.ExecutionContext
+import org.scalajs.dom.experimental._
 
 @react class UserPage extends Component {
   case class Props(userData: UserData, doLogout: () => Unit)
@@ -30,15 +31,16 @@ import scala.concurrent.ExecutionContext
   implicit val ec = ExecutionContext.global
 
   def loadCourses(): Unit = {
-    println("Loading courses")
-    Fetch.fetch(s"/getCourses?userid=${props.userData.id}")
-      .flatMap { res =>
-        println("Got courses.")
-        println(res)
+    val headers = new Headers()
+    headers.set("Content-Type", "application/json")
+    headers.set("Csrf-Token", dom.document.getElementsByTagName("body").apply(0).getAttribute("data-token"))
+    Fetch.fetch(
+      s"/getCourses?userid=${props.userData.id}",
+      RequestInit(method = HttpMethod.POST, mode = RequestMode.cors, headers = headers, body = Json.toJson(props.userData.id).toString())
+    ).flatMap { res =>
         res.text()
       }
       .map { res =>
-        println("Got courses result")
         Json.fromJson[Seq[CourseData]](Json.parse(res)) match {
           case JsSuccess(cd, path) =>
             println(cd)
