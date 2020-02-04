@@ -14,7 +14,8 @@ case class QuizData(
 case class MultipleChoiceData(
   mcid: Int,
   spec: MultipleChoice,
-  answer: Option[Int])
+  answer: Option[Int],
+  correct: Boolean)
 
 case class CodeQuestionData(
     questionid: Int,

@@ -211,11 +211,11 @@ object Queries {
         val userAnswer = db.run((for{
           ans <- McAnswers
           if ans.userid === userid && ans.quizid === quizid && ans.mcQuestionId === row.mcQuestionId
-        } yield ans.selection).result)
+        } yield ans).result)
         for{
           spec <- fspec
           ans <- userAnswer
-        } yield MultipleChoiceData(row.mcQuestionId, spec, if(ans.isEmpty) None else Some(ans.head))
+        } yield MultipleChoiceData(row.mcQuestionId, spec, ans.headOption.map(_.selection), ans.exists(_.correct))
       }
     })
     data

@@ -13,7 +13,9 @@ import shared.SharedData._
   def initialState = State(None)
 
   def render(): ReactElement = div ({
-    val ret = state.userData.map(ud => UserPage(ud, doLogout)).getOrElse(LoginPage(doLogin(_)))
+    val ret = state.userData.map(ud => 
+      if (ud.instructor) InstructorPage(ud, doLogout) else UserPage(ud, doLogout)
+    ).getOrElse(LoginPage(doLogin(_)))
     ret
   })
 

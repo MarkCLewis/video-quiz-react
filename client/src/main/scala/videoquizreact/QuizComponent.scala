@@ -44,7 +44,7 @@ import models._
         }
       ), 
       state.quizData.map(qd => 
-        td ((qd.multipleChoice.count(d => d.answer.getOrElse(-100) == d.spec.correct) + qd.codeQuestions.count(_.correct)) + "/" + 
+        td ((qd.multipleChoice.count(_.correct) + qd.codeQuestions.count(_.correct)) + "/" + 
             (qd.codeQuestions.length + qd.multipleChoice.length)): TagMod[tr.tag.type]
       ).getOrElse(td ( "?/?"  ): TagMod[tr.tag.type]), 
       td (

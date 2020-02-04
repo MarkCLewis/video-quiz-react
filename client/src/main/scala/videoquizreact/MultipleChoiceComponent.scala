@@ -43,7 +43,7 @@ import slinky.core.TagMod
         )
       },
       if (props.closed || props.question.answer.nonEmpty || state.answered) 
-        (if (props.question.answer.getOrElse(-100) == props.question.spec.correct) "Correct" else "Incorrect") 
+        (if (props.question.correct) "Correct" else "Incorrect") 
         else button ( "Submit", onClick := (event => submitAnswer()))
     )
   }
